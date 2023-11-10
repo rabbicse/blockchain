@@ -18,7 +18,7 @@ const candidate = document.querySelector("#candidate");
 const addTheCandidate = document.querySelector("#addTheCandidate");
 
 // Configuring ethers
-const contractAddress = "0xfB8632cD517600aaE9B63D7c7Ee5285dFD213E73";
+const contractAddress = `0xfB8632cD517600aaE9B63D7c7Ee5285dFD213E73`;
 const contractABI = [
   {
     inputs: [],
@@ -273,11 +273,11 @@ const contractABI = [
 
 let contract;
 let signer;
-const provider = new ethers.providers.Web3Provider(windom.etherium, 80001);
+const provider = new ethers.providers.Web3Provider(window.ethereum, 80001);
 provider.send("eth_requestAccounts", []).then(() => {
   provider.listAccounts().then((accounts) => {
     signer = provider.getSigner(accounts[0]);
-    contract = new ethers.contract(contractAddress, contractABI, signer);
+    contract = new ethers.Contract(contractAddress, contractABI, signer);
   });
 });
 
@@ -303,26 +303,26 @@ const getAllCandidates = async function () {
                            <td>${candidates[i][1]}</td>`;
     board.appendChild(candidate);
   }
-}
+};
 
-const getResult = async function() {
-    result.style.display = "flex";
+const getResult = async function () {
+  result.style.display = "flex";
 
-    if(document.getElementById("resultBoard")) {
-        document.getElementById("resultBoard").remove();
-    }
+  if (document.getElementById("resultBoard")) {
+    document.getElementById("resultBoard").remove();
+  }
 
-    let resultBoard = document.createElement("table");
-    resultBoard.id = "resultBoard";
-    result.appendChild(resultBoard);
+  let resultBoard = document.createElement("table");
+  resultBoard.id = "resultBoard";
+  result.appendChild(resultBoard);
 
-    let tableHeader = document.createElement("tr");
-    tableHeader.innerHTML = `<th>ID No.</th>
+  let tableHeader = document.createElement("tr");
+  tableHeader.innerHTML = `<th>ID No.</th>
                                <th>Candidate</th>
                                <th>Number of Votes</th>`;
-    resultBoard.appendChild(tableHeader);
+  resultBoard.appendChild(tableHeader);
 
-    let candidates = await contract.retrieveVotes();
+  let candidates = await contract.retrieveVotes();
   for (let i = 0; i < candidates.length; i++) {
     let candidate = document.createElement("tr");
     candidate.innerHTML = `<td>${parseInt(candidates[i][0])}</td>
@@ -330,10 +330,100 @@ const getResult = async function() {
                            <td>${parseInt(candidates[i][2])}</td>`;
     resultBoard.appendChild(candidate);
   }
-}
+};
 
-const refreshPage = function() {
-    setInterval(async () => {
-let time = await contract.electionTimer();
-    }, 10000);
-}
+const refreshPage = function () {
+  setInterval(async () => {
+    let time = await contract.electionTimer();
+
+    if (time > 0) {
+      timerMsg.innerHTML = `<span id="time">${time}</span> seconds left`;
+      voterForm.style.display = "flex";
+      showResultContainer.style.display = "none";
+    } else {
+      timerMsg.textContent =
+        "Either there's no election yet or the election already ended!";
+      voterForm.style.display = "none";
+      showResultContainer.style.display = "block";
+    }
+  }, 10000);
+
+  setInterval(async () => {
+    getAllCandidates();
+  }, 10000);
+};
+
+const sendVote = async function () {
+  await contract.voteTo(vote.value);
+  vote.value = "";
+};
+
+const startElections = async function () {
+  if (!candidate.value) {
+    alert("list of candidates is empty!");
+  }
+
+  if (!electionDuration.value) {
+    alert("Please set the election duration!");
+  }
+
+  const _candidates = candidates.value.split(",");
+  const _votingDuration = electionDuration.value;
+
+  await contract.startElection(_candidates, _votingDuration);
+
+  refreshPage();
+
+  candidates.value = "";
+  electionDuration.value = "";
+
+  voterForm.style.display = "flex";
+  showResultContainer.style.display = "none";
+};
+
+const addCandidate = async function () {
+  if (!candidate.value) {
+    alert("No candidate...");
+  }
+
+  await contract.addCandidate(candidate.value);
+  refreshPage();
+
+  candidate.value = "";
+};
+
+const getAccount = async function () {
+  const ethAccounts = await provider
+    .send("eth_requestAccounts", [])
+    .then(() => {
+      provider.listAccounts().then((accounts) => {
+        signer = provider.getSigner(accounts[0]);
+        contract = new ethers.Contract(contractAddress, contractABI, signer);
+      });
+    });
+
+  connectWalletBtn.textContent = signer._address.slice(0, 10) + "...";
+  connectWalletMsg.textContent = "You are currently connected...";
+  connectWalletBtn.disabled = true;
+
+  let owner = await contract.owner();
+  if (owner == signer._address) {
+    admin.style.display = "flex";
+
+    let time = await contract.electionDuration();
+    if (time == 0) {
+      contract.checkElectionPeriod();
+    }
+  }
+
+  votingStation.style.display = "block";
+  refreshPage();
+  getAllCandidates();
+};
+
+// Add event listener
+connectWalletBtn.addEventListener('click', getAccount);
+showResult.addEventListener('click', getResult);
+voteBtn.addEventListener('click', sendVote);
+addTheCandidate.addEventListener('click', addCandidate);
+startElection.addEventListener('click', startElections);
