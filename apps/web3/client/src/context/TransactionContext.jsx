@@ -7,7 +7,7 @@ export const TransactionContext = React.createContext();
 
 const { ethereum } = window;
 
-const getEtheriumContract = () => {
+const createEtheriumContract = () => {
   const provider = new ethers.providers.Web3Provider(ethereum);
   const signer = provider.getSigner();
   const transactionContract = new ethers.Contract(
@@ -16,13 +16,13 @@ const getEtheriumContract = () => {
     signer
   );
 
-  console.log(provider, signer, transactionContract);
+  return transactionContract;
 };
 
 export const TransactionProvider = ({ children }) => {
   // const [connectedAccount, setConnectedAccount] = useState("");
   const [currentAccount, setCurrentAccount] = useState("");
-  const { formData, setFormData } = useState({
+  const [formData, setFormData] = useState({
     addressTo: "",
     amount: "",
     keyword: "",
@@ -74,6 +74,9 @@ export const TransactionProvider = ({ children }) => {
       if (!ethereum) return alert("Please install MetaMask.");
 
       // get the data from the form
+      const { addressTo, amount, keyword, message } = formData;
+      const contract = createEtheriumContract();
+      console.log(contract);
     } catch (error) {
       console.log(error);
     }
@@ -84,7 +87,16 @@ export const TransactionProvider = ({ children }) => {
   });
 
   return (
-    <TransactionContext.Provider value={{ connectWallet, currentAccount, formData, setFormData, handleChange }}>
+    <TransactionContext.Provider
+      value={{
+        connectWallet,
+        currentAccount,
+        formData,
+        setFormData,
+        handleChange,
+        sendTransaction,
+      }}
+    >
       {children}
     </TransactionContext.Provider>
   );

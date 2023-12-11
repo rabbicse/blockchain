@@ -22,7 +22,7 @@ const Input = ({ placeholder, name, type, value, handleChange }) => (
 );
 
 const Welcome = () => {
-  const { connectWallet, currentAccount, formData, setFormData, handleChange } = useContext(TransactionContext);
+  const { connectWallet, currentAccount, formData, sendTransaction, handleChange } = useContext(TransactionContext);
 
   const isLoading = false;
   // const {
@@ -35,13 +35,13 @@ const Welcome = () => {
   // } = useContext(TransactionContext);
 
   const handleSubmit = (e) => {
-    // const { addressTo, amount, keyword, message } = formData;
+    const { addressTo, amount, keyword, message } = formData;
 
     e.preventDefault();
 
-    // if (!addressTo || !amount || !keyword || !message) return;
+    if (!addressTo || !amount || !keyword || !message) return;
 
-    // sendTransaction();
+    sendTransaction();
   };
 
   return (
